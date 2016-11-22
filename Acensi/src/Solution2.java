@@ -1,148 +1,81 @@
-import java.awt.Point;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Scanner;
 
 public class Solution2 {
-	
-	static boolean ACENSI = false;
-	
-	static int R;
-	static int C;
-	static int N = 3;
-	static boolean EXIT_FOUND = false;
-	static Point EXIT_POINT = null;
-	static ArrayList<Direction> moves = new ArrayList<Direction>();
-	static Direction[] directions = {Direction.DOWN, Direction.UP, Direction.LEFT, Direction.RIGHT};
-	
-	public enum Direction {
-		UP (-1, 0),
-		DOWN (1, 0),
-		LEFT (0, -1),
-		RIGHT (0, 1);
+	public static void main(String[] args) throws IOException {
 		
-		private int deltaX, deltaY ;
-		
-		Direction (int x, int y) {
-			this.deltaX = x;
-			this.deltaY = y;
-		}
-		
-		public Point getDelta() {
-			return new Point(deltaX, deltaY);
-		}
+		String[] m = {"UP", "LEFT", "DOWN", "RIGHT"};
 		
 		
-	}
-	
-	public static void main(String[] args) throws FileNotFoundException {
-		// TODO Auto-generated method stub
-		Scanner in = null;
-		if(ACENSI)
-			in = new Scanner(System.in);
-		else 
-			in = new Scanner(new File("bot2.txt"));
+		Scanner in = new Scanner(System.in);
+		int n = in.nextInt();
 		
-		int id = in.nextInt();
+		Character[][] map = new Character[3][3];
 		
 		
-		Character[][] map = readMap(in);
-		List<Direction> possibleMoves = possibleMoves(map);
 		
-		if (moves.size() > 2) {
-			System.out.println("YEAAAAAAAAAAAj");
-		}
-		if(EXIT_FOUND) {
-			if (EXIT_POINT.x > 1) {
-				if(possibleMoves.contains(Direction.DOWN)) {
-					move(Direction.DOWN);
-					return;
-				}
-			}
-			
-			if (EXIT_POINT.x < 1) {
-				if(possibleMoves.contains(Direction.UP)) {
-					move(Direction.UP);
-					return;
-				}
-			}
-			
-			if (EXIT_POINT.y < 1) {
-				if(possibleMoves.contains(Direction.LEFT)) {
-					move(Direction.LEFT);
-					return;
-				}
-			}
-			
-			if (EXIT_POINT.y > 1) {
-				if(possibleMoves.contains(Direction.RIGHT)) {
-					move(Direction.RIGHT);
-					return;
-				}
-			}
-		}
-		else {
-			if(possibleMoves.contains(Direction.UP)) {
-				move(Direction.UP);
-				return;
-			}
-			else if (possibleMoves.contains(Direction.RIGHT)) {
-				move(Direction.RIGHT);
-				return;
-			}
-			else if (possibleMoves.contains(Direction.DOWN)) {
-				move(Direction.DOWN);
-				return;
-			}
-			else {
-				move(Direction.LEFT);
-				return;
-			}
-			
-		}
-		
-	}
-	
-	private static Character[][] readMap(Scanner in) {
-		Character[][] map = new Character[N][N];
-		
-		for (int i=0; i<N; i++) {
+		for (int i=0; i<3; i++) {
 			String line = in.next();
-			
-			for (int j=0; j<N; j++) {
+			for(int j=0; j<3; j++) {
 				map[i][j] = line.charAt(j);
-				if(map[i][j] == 'e') {
-					EXIT_FOUND = true;
-					EXIT_POINT = new Point(i,j);
-				}
 			}
 		}
-		return map;
-	}
-	
-	private static List<Direction> possibleMoves(Character[][] map) {
-		List<Direction> possibleMoves = new ArrayList<Direction>();
+		Character[] dir = {map[0][1], map[1][0], map[2][1], map[1][2]};
 		
-		int xbot = 1;
-		int ybot = 1;
 		
-		for (Direction d : directions) {
-			Point delta = d.getDelta();
-			if (map[xbot+delta.x][ybot+delta.y] != '#')
-				possibleMoves.add(d);
+		
+		for (int i=0; i<4; i++) {
+			if(dir[i] == 'e') {
+				move(m[i], map);
+				return;
+			}
 		}
 		
-		return possibleMoves;
+		for (int i=0; i<4; i++) {
+			if(dir[i] == '-') {
+				move(m[i], map);
+				break;
+			}
+		}
+			
 	}
 	
-	private static void move(Direction d) {
-		moves.add(d);
-		System.out.println(d);
-		return;
+	public static void move(String s, Character[][] map) throws IOException {
+		String dir = s;
+		File bot = new File("bot.txt");
+		int level = 0;
+		if(bot.createNewFile()) {
+			
+			
+			
+			PrintWriter writer = new PrintWriter("bot.txt", "UTF-8");
+			
+			
+			writer.println(s);
+			writer.close();
+		} 
+		else {
+			Scanner botIn = new Scanner(bot);
+			String line = "";
+			while(botIn.hasNext()) {
+				line += botIn.nextLine();
+			}
+			
+			System.out.println(line);
+			
+			if(line.endsWith("UPUP") && dir.equals("UP")) {
+				if(map[2][1] == '-')
+					dir = "RIGHT";
+			}
+			String filename= "bot.txt";
+		    FileWriter fw = new FileWriter(filename,true); //the true will append the new data
+		    fw.write(s);//appends the string to the file
+		    fw.close();
+		}
+		
+		//System.out.println(dir);
 	}
-	
-
 }

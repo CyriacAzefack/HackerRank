@@ -10,10 +10,11 @@ import java.util.Scanner;
 public class Solution {
 	
 	public static Character MY_COLOR;
-	public static int N = 29;
-	public static int N_MIN = 29;
-	public static int NB_TURNS = 40;
+	public static Character ENN_COLOR;
 	
+	public static int N = 29;
+	public static int MAX_PREDICTS = 100;
+	public static int MAX_RANDOM_TRIALS = 100;
 	public static boolean ACENSI = false;
 	
 	public static void main(String[] args) throws FileNotFoundException {
@@ -30,48 +31,118 @@ public class Solution {
 		
 		
 		MY_COLOR = in.nextLine().charAt(0);
+		if(MY_COLOR == 'w')
+			ENN_COLOR = 'b';
+		else {	
+			ENN_COLOR = 'w';
+		}
 		
 		Character[][] board = readBoard(in);
 		
 		
-		
+		long startTime = System.currentTimeMillis();
 		Point bestCell = findBestCell(board);
 		
 		if(bestCell != null) {
 			System.out.println(bestCell.x+" "+bestCell.y);
 		}
 		else {
-			int x = -1;
-			int y = -1;
-			do {
-				Random rand = new Random();
-				x = rand.nextInt(N_MIN);
-				y = rand.nextInt(N_MIN);
-				
-			}while(board[x][y] != '-');
 			
-			System.out.println(x+" "+y);
+			//ATTACK
+			boolean attackSuccessfull = false;
+			
+			
+			for(int i=0; i<N; i++) {
+				for(int j=0; j<N; j++) {
+					if(board[i][j] == ENN_COLOR) {
+						int alive = nbAliveNeighbors(board, i, j).x;
+						if(alive == 3) {
+							for(int k=-1; k<2; k++) {
+								for (int l=-1; l<2; l++) {
+									int X = i+k;
+									int Y = j+l;
+									if(X>-1 && X<N && Y>-1 && Y<N) {
+										if(board[X][Y] == '-') {
+											attackSuccessfull = true;
+											System.out.println(X+" "+Y);
+											return;
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			 
+			
+			if(!attackSuccessfull) {
+				
+				
+				//RANDOM
+				int x = -1;
+				int y = -1;
+				char c = ' ';
+				do {
+					Random rand = new Random();
+					x = rand.nextInt(N);
+					y = rand.nextInt(N);
+					c = board[x][y];
+				}while(board[x][y] != '-');
+				
+				System.out.println(x+" "+y);
+			}
 		}
 		
-		
+		 long stopTime = System.currentTimeMillis();
+	     long elapsedTime = (stopTime - startTime);
+	     
+	     System.err.println("Time spent : " + elapsedTime + " ms");
 		
 	}
 	
-	private static Point findBestCell(Character[][] board) {
+	private static Point findBestCell(Character[][] map) {
 		
-		for (int i=0; i<N_MIN; i++) {
-			for (int j=0; j<N_MIN; j++) {
-				if(board[i][j] == MY_COLOR) {
-					int nbAliveNeigh = nbAliveNeighbors(board, i, j).x;
-					HashMap<Point, Integer> neighbors = getDeadNeighBors(board, i, j);
-					if(nbAliveNeigh < 3 && !neighbors.isEmpty()) {
-						return bestNeighBor(board, neighbors);
+		
+	
+		Point best = null;
+		for(int x=0; x<N; x++) {
+			for (int y=0; y<N; y++) {
+				if (map[x][y] == '-') {
+					Point w = win(map, x, y);
+					if(w.x == 1 ) {
+						best = new Point(x, y);
 					}
 				}
 			}
 		}
 		
-		return null;
+		if(best == null) {
+			System.err.println("IMPOSSIBLE TO WIN");
+			for(int x=0; x<N; x++) {
+				for (int y=0; y<N; y++) {
+					if (map[x][y] == '-') {
+						Point w = win(map, x, y);
+						if(w.x == 0) {
+							System.err.println("Tied game");
+							return new Point(x, y);
+						}
+					}
+				}
+			}
+		}
+		
+		if(best != null)
+			System.err.println("WIN MIN : " + win(map, best.x, best.y));
+		else 
+			System.err.println("NO BEST FOUND!!!");
+		
+		return best;
+		
+		
+		
+		
+		
 	}
 
 	private static Character[][] readBoard(Scanner in) {
@@ -116,93 +187,90 @@ public class Solution {
 		return new Point(nbNeighbors, nbNeighborsMine);
 	}
 	
-	
-	private static HashMap<Point, Integer> getDeadNeighBors(Character[][] map, int x, int y) {
-		HashMap<Point, Integer> neighbors = new HashMap<Point, Integer>();
-		
-		for (int i=-1; i<2; i++) {
-			for (int j=-1; j<2; j++) {
-				int X = x+i;
-				int Y = y+j;
-				
-				if(i != 0 || j !=0) {
-					if (X<N && X>-1 && Y<N && Y>-1) {
-						int n = nbAliveNeighbors(map, X, Y).x;
-						//System.out.println("Alive neighbors for ["+X+" "+Y+"] = " + n);
-						if(n < 3 && map[X][Y] == '-')
-							neighbors.put(new Point(X, Y), n);
-						
+	public static Character[][] predict(Character[][] map) {
+		Character[][] result = new Character[N][N];
+		for (int i=0; i<N; i++) {
+			for (int j=0; j<N; j++) {
+				Point p = nbAliveNeighbors(map, i, j);
+				int alive = p.x;
+				int aliveMine = p.y;
+				if(map[i][j] == '-') { //DEAD CELL
+					if(alive == 3) { //DEAD TO ALIVE
+						if(aliveMine > 1)
+							result[i][j] = MY_COLOR;
+						else 
+							result[i][j] = ENN_COLOR;
+					}
+					else { //STAY DEAD
+						result[i][j] = '-';
+					}
+				}
+				else { //ALIVE CELL
+					if (alive < 2 || alive > 3) { //ALIVE TO DEAD
+						result[i][j] = '-';
+					}
+					else {
+						result[i][j] = map[i][j];
 					}
 				}
 			}
 		}
 		
-		return neighbors;
+		return result;
 	}
 	
-	private static HashMap<Point, Integer> getAliveNeighBors(Character[][] map, int x, int y, boolean stable) {
-		HashMap<Point, Integer> neighbors = new HashMap<Point, Integer>();
-		
-		for (int i=-1; i<2; i++) {
-			for (int j=-1; j<2; j++) {
-				int X = x+i;
-				int Y = y+j;
-				
-				if(i != 0 || j !=0) {
-					if (X<N && X>-1 && Y<N && Y>-1) {
-						int n = nbAliveNeighbors(map, X, Y).x;
-						//System.out.println("Alive neighbors for ["+X+" "+Y+"] = " + n);
-						if(stable) {
-							if(n < 3 && map[X][Y] != '-')
-								neighbors.put(new Point(X, Y), n);
-						}
-						else {
-							if(map[X][Y] != '-')
-								neighbors.put(new Point(X, Y), n);
-						}
-						
-					}
-				}
+	public static Point countAlive(Character[][] map) {
+		int me = 0;
+		int enn = 0;
+		for(int i=0; i<N; i++) {
+			for (int j=0; j<N; j++) {
+				if(map[i][j] == MY_COLOR)
+					me++;
+				else if (map[i][j] == ENN_COLOR)
+					enn++;
 			}
 		}
 		
-		return neighbors;
-	}
-	
-	private static Point bestNeighBor(Character[][] map, HashMap<Point, Integer> neighbors) {
-		
-		int minNeigh = 4;
-		for (Entry<Point, Integer> neigh : neighbors.entrySet()) {
-			if (neigh.getValue() < minNeigh)
-				minNeigh = neigh.getValue();
-		}
-		
-		ArrayList<Point> minList =new ArrayList<Point>();
-		for (Entry<Point, Integer> neigh : neighbors.entrySet()) {
-			if (neigh.getValue() == minNeigh)
-				minList.add(neigh.getKey());
-		}
-		
-		
-		for (Point p : minList) {
-			if(isGood(map, p))
-				return p;
-		}
-		
-		
-		
-		
-		return null;
+		return new Point(me, enn);
 		
 	}
 	
-	private static boolean isGood(Character[][] map, Point p) {
+	public static Point win(Character[][] board, int x, int y) {
+	
 		
-		HashMap<Point, Integer> neighborsStable = getAliveNeighBors(map, p.x, p.y, true);
-		HashMap<Point, Integer> neighborsAll = getAliveNeighBors(map, p.x, p.y, false);
+		int nPredictsMax = MAX_PREDICTS;
+		
+		Character[][] map = new Character[N][N];
 		
 		
-		return (neighborsStable.size() == neighborsAll.size());
+		for(int i=0; i<N; i++) {
+			for(int j=0; j<N; j++) {
+				map[i][j] = board[i][j];
+			}
+		}
+		
+		map[x][y] = MY_COLOR;
+		
+		
+		Point p = null;
+		do {
+			map = predict(map);
+			p = countAlive(map);
+			nPredictsMax--;
+		}while(p.x !=0 && p.y !=0 && nPredictsMax > 0) ;
+		
+		if(p.x == 0) {
+			return new Point(-1, MAX_PREDICTS-nPredictsMax);
+		} else if (p.y == 0){
+			return new Point(1, MAX_PREDICTS-nPredictsMax);
+		}
+		
+		return new Point(0, MAX_PREDICTS-nPredictsMax);
+		
+		
+		
+		
 	}
+	
 
 }
